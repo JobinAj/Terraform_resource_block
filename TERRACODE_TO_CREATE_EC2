@@ -1,7 +1,7 @@
 provider "aws"{
-region = "var.region"
-access_key = "var.access_key"
-secret_key = "var.secret_key"
+region = var.region
+access_key = var.access_key
+secret_key = var.secret_key
 }
 
 resource "aws_vpc" "sa-vpc" {
@@ -32,7 +32,7 @@ resource "aws_route_table_association" "a" {
 }
 
 resource "aws_internet_gateway" "gw" {
- depends-on = [aws_vpc.sa-vpc.id]
+ depends_on = [aws_vpc.sa-vpc]
  vpc_id = aws_vpc.sa-vpc.id
 
  tags = {
@@ -48,7 +48,7 @@ resource "aws_route" "r" {
 
 
 resource "aws_security_group" "mysg" {
-  name = "sg-rule"
+  name = "mysg"
   description = "Allow TLS inbound traffic and all outbound traffic"
   vpc_id      = aws_vpc.sa-vpc.id
   dynamic "ingress"{
@@ -57,7 +57,7 @@ resource "aws_security_group" "mysg" {
   content{
    from_port         = port.value
    to_port           = port.value
-   ip_protocol       = "tcp"
+   protocol       = "tcp"
    cidr_blocks      = ["0.0.0.0/0"]
 
   }
@@ -78,7 +78,8 @@ resource "tls_private_key" "mykey" {
 }
 
 resource "aws_key_pair" "web-key" {
-  key_name   = "web-key"
+  key_name = "web-key"
+
   public_key = "tls_private_key.mykey.public_key_openssh"
 
 
@@ -91,7 +92,8 @@ resource "aws_key_pair" "web-key" {
 resource "aws_instance" "myterraform" {
   ami           = var.amiid
   instance_type = var.instance_type
-  key_name = web-key
+  key_name = aws_key_pair.web-key.key_name
+
   subnet_id = aws_subnet.sa-subnet.id
   security_groups = [aws_security_group.mysg.id]
 
